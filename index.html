@@ -1,46 +1,110 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>チャットボット</title>
-
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>LangChain ChatBot</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-        .cool-box {
-            width: 600px;
-            height: 800px;
-            background: linear-gradient(45deg, #49a09d, #5f2c82);
-            color: white;
-            padding: 20px;
-            border-radius: 20px;
-            box-shadow: 0px 10px 20px rgba(0,0,0,0.19), 0px 6px 6px rgba(0,0,0,0.23);
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        #chat {
+            max-width: 100%;
+            flex-grow: 1;
+            overflow: auto;
+        }
+        .question,
+        .answer {
+            max-width: 80%;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 10px;
+        }
+        .question {
+            background-color: #f1f1f1;
+            float: right;
+            clear: both;
+        }
+        .answer {
+            background-color: #e6ffe6;
+            float: left;
+            clear: both;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        #input-area {
+            text-align: center;
+            padding: 10px;
+            background-color: #f1f1f1;
         }
     </style>
-
 </head>
 <body>
-<div>
-    <div id="streaming_msg" class="cool-box">
-        <h1>Streaming message from GPT</h1>
-        <p>OpenAI APIで生成される情報は不正確または不適切な場合がありますが、当社の見解を述べるものではありません。</p>
-        <hr color="white">
+    <div id="chat">
+        <!-- Chat history will go here -->
     </div>
-<script>
-    const messagesDiv = document.getElementById("streaming_msg");
+    <div id="input-area">
+        <input type="text" id="question" placeholder="Type your question here..." minlength="2" maxlength="200" size="100">
+        <button id="submit">Submit</button>
+    </div>
+    <script>
+        $(document).ready(function() {
+            let eventSource = null;
+            $("#submit").click(async function() {
+                // 既存のEventSourceがあれば閉じる
+                if (eventSource) {
+                    eventSource.close();
+                }
+                const question = $("#question").val();
+                $("#chat").append("<p class='question'>" + question + "</p>");
+                $('#chat').scrollTop($('#chat')[0].scrollHeight);
 
-    //  LLMからのストリーミング形式の応答を /listen エンドポイントから受け取る
-    const eventSource = new EventSource("/listen");
-    eventSource.onmessage = function (event) {
-        const data = event.data;
-        messagesDiv.innerHTML += data;
-    };
-    // エラーが発生した場合の処理
-    eventSource.onerror = function(event) {
-        console.error("Connection error:", event);
-        // no automatic re-connection
-        eventSource.close();
-    };
-</script>
+                // Clear the text input field
+                $("#question").val('');
+
+                //  LLMからのストリーミング形式の応答を /listen エンドポイントから受け取る
+                eventSource = new EventSource("/listen");
+                const messagesDiv = document.getElementById("chat");
+                answerElement = document.createElement("p");
+                answerElement.className = "answer";
+                messagesDiv.appendChild(answerElement);
+
+                prepare_text = "Wikipedia検索中です。しばらくお待ちください。";
+                answerElement.textContent = prepare_text;
+
+                eventSource.onmessage = function (event) {
+                    if(answerElement.textContent === prepare_text) {
+                        answerElement.textContent = "";
+                        const data = event.data;
+                        answerElement.textContent += data;
+                    } else {
+                        const data = event.data;
+                        answerElement.textContent += data;
+                    }
+                };
+                
+                let response = await fetch("/ask", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({"question": question}), 
+                });
+                
+                res_json = await response.json()
+                console.log("Response",res_json.urlList)
+                
+                // エラーが発生した場合の処理
+                eventSource.onerror = function(event) {
+                    console.error("Connection error:", event);
+                    eventSource.close();
+                };
+            });
+        });
+    </script>
 </body>
 </html>
