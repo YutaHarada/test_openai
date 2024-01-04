@@ -33,7 +33,6 @@ def format_result(query: str) -> dict:
     Paramater
     --------
     quey: 検索に使用するクエリ
-    n: 検索するドキュメントの数
 
     Return
     ------
