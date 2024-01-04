@@ -15,6 +15,11 @@ from langchain.prompts import (
 from langchain.schema import HumanMessage, SystemMessage # NOQA
 
 
+import langchain
+
+langchain.verbose = True
+langchain.debug = True
+
 load_dotenv()
 
 # 質問文
@@ -99,7 +104,7 @@ print(search_result)
 
 # OutputParser②の準備
 response_schemas_2 = [
-    ResponseSchema(name="result", description="与えられた'snippet'の値を要約した文章"),
+    ResponseSchema(name="result", description="questionに対する回答"),
 ]
 output_parser_2 = StructuredOutputParser.from_response_schemas(
     response_schemas_2
@@ -108,10 +113,9 @@ output_parser_2 = StructuredOutputParser.from_response_schemas(
 # Prompt②の準備
 format_instructions_2 = output_parser_2.get_format_instructions()
 
-template_2 = """与えられた入力に対して以下の処理を施した上で辞書型で出力してください。
-・"snippet"の内容を用いて"question"に対する回答を作成し、キー"result"の値として格納してください。
+template_2 = """snippetの内容を用いてquestionに対する回答を作成し、キーresultの値として格納してください。
 
-{format_instructions}
+{format_instructions_2}
 
 {snippet}
 
@@ -121,7 +125,7 @@ template_2 = """与えられた入力に対して以下の処理を施した上�
 human_prompt_2 = PromptTemplate(
     template=template_2,
     input_variables=["snippet", "question"],
-    partial_variables={"format_instructions": format_instructions_2},
+    partial_variables={"format_instructions_2": format_instructions_2},
 )
 
 system_message_prompt_2 = SystemMessagePromptTemplate.from_template(
