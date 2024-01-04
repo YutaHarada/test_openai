@@ -50,8 +50,7 @@ def format_result(query: str) -> dict:
     return {"snippet": snippet, "links": links}
 
 
-description = """与えられたqueryについて検索エンジンBingを用いて調査を行ってください。
-検索結果として得られた記事の内容は結合し、参考にしたWebサイトのURLを記録してください。
+description = """与えられた検索クエリと検索エンジンBingを用いて調査を行ってください。
 """
 
 search = Tool(
